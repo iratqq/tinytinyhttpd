@@ -1697,9 +1697,9 @@ request_done:
 		unsigned long total = res_info->size;
 		int sent = 0;
 #if defined LINUX_SENDFILE_API
-		sent = sendfile(msgsock, res_info->read, NULL, total);
+		sent = sendfile(msgsock, fileno(res_info->read), NULL, total);
 #elif defined FREEBSD_SENDFILE_API
-		sendfile(msgsock, res_info->read, 0, &sent, NULL, 0);
+		sendfile(msgsock, fileno(res_info->read), 0, &sent, NULL, 0);
 #elif defined _WIN32
 		if (total != (unsigned long)-1) {
 			sent = TransmitFile(
@@ -1819,7 +1819,11 @@ void* watch_thread(void* param)
 
 	for ( ; res; res = res->ai_next) {
 		int listen_sock;
-		char on;
+#ifdef _WIN32
+		char on = 1;
+#else
+		int on = 1;
+#endif
 		unsigned int salen;
 		char ntop[NI_MAXHOST], strport[NI_MAXSERV];
 
@@ -1883,7 +1887,7 @@ void* watch_thread(void* param)
 			maxfd = httpd->socks[fds];
 	}
 	int fdsetsz = howmany(maxfd + 1, NFDBITS) * sizeof(fd_mask);
-	struct fd_set *fdset = (fd_set *)malloc(fdsetsz);
+	fd_set *fdset = (fd_set *)malloc(fdsetsz);
 
 	for(;;) {
 		int fds, nfds;
